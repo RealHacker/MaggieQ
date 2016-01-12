@@ -10,6 +10,8 @@ import "time"
 // global connection store
 var Connections ConnectionMap
 
+const MAX_CHANNELS_PER_CONNECTION = 65535
+
 type ConnectionMap struct {
 	ConnectionStore map[int64]*Connection
 	sync.Mutex
@@ -17,6 +19,7 @@ type ConnectionMap struct {
 
 type Connection struct{
 	ID int64
+	sync.Mutex
 	Channels map[int64]*Channel
 	TCPConnection *net.Conn
 }
@@ -69,3 +72,30 @@ func NewConnection(conn net.Conn) error {
 	}
 }
 
+func (conn *Connection) OpenChannel() (Channel, error) {
+	channelCount := len(conn.Channels)
+	if channelCount >= MAX_CHANNELS_PER_CONNECTION {
+		return nil, ERROR_MAX_CHANNEL_REACHED
+	}
+	// Create a new channel
+	var channel Channel
+	conn.Lock()
+	for {
+		randID := rand.Int63()
+		_, ok := conn.Channels[randID]
+		if ok {
+			continue
+		} else {
+			channel = &Channel{
+				ID: randID,
+				Consumers: make(map[string]*Consumer),
+			}
+			conn.Channels[randID] = channel
+			break
+		}
+	}
+	conn.Unlock()
+	// TODO: Start a channel handler goroutine
+
+	return channel, nil
+}

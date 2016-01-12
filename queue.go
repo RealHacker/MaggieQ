@@ -13,3 +13,12 @@ type QueueMap struct {
 type Queue struct {
 	Consumers []*Consumer
 }
+
+
+func (q Queue) AddConsumser(consumer *Consumer) {
+
+}
+
+func (q Queue) RemoveConsumer(consumer *Consumer){
+
+}
